@@ -1,12 +1,28 @@
 classDiagram
+    class Priority {
+        <<enumeration>>
+        HIGH
+        MEDIUM
+        LOW
+    }
+
+    class Frequency {
+        <<enumeration>>
+        ONCE
+        DAILY
+        WEEKLY
+    }
+
     class Owner {
         +String name
         +String preferences
         +String availableStart
         +String availableEnd
+        +List~Pet~ pets
         +addPet()
         +updatePreferences()
         +setAvailableTime()
+        +availableMinutes() int
     }
 
     class Pet {
@@ -15,7 +31,9 @@ classDiagram
         +int age
         +String healthNotes
         +List careNeeds
+        +List~Task~ tasks
         +addCareNeed()
+        +addTask()
         +updateProfile()
         +getDailyRequirements()
     }
@@ -24,20 +42,28 @@ classDiagram
         +String title
         +String category
         +int durationMinutes
-        +String priority
+        +Priority priority
         +String preferredTime
-        +Boolean recurring
+        +Frequency frequency
+        +Pet pet
         +updateDuration()
         +changePriority()
         +isHighPriority()
         +fitsInTimeWindow()
     }
 
+    class PlanItem {
+        +Task task
+        +int startMinutes
+        +endMinutes() int
+    }
+
     class Planner {
         +Owner owner
-        +Pet pet
+        +List~Pet~ pets
         +List~Task~ tasks
-        +generatePlan()
+        +collectTasks()
+        +generatePlan() List~PlanItem~
         +sortTasks()
         +resolveConflicts()
         +explainPlan()
@@ -45,6 +71,10 @@ classDiagram
 
     Owner "1" --> "1..*" Pet : owns
     Pet "1" --> "0..*" Task : has
+    Task "0..*" --> "1" Pet : belongs to
+    Task --> Priority
+    Task --> Frequency
+    PlanItem "1" --> "1" Task : schedules
     Planner --> Owner
-    Planner --> Pet
-    Planner --> Task
+    Planner "1" --> "1..*" Pet
+    Planner ..> PlanItem : produces
