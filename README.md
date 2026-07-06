@@ -12,6 +12,14 @@ A busy pet owner needs help staying consistent with pet care. They want an assis
 
 Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
 
+## 📐 System Design (UML)
+
+The final class design for PawPal+, matching the code in `pawpal_system.py`:
+
+![PawPal+ UML class diagram](diagrams/uml_final.png)
+
+> Source: [`diagrams/uml_final.mmd`](diagrams/uml_final.mmd)
+
 ## What you will build
 
 Your final app should:
@@ -69,7 +77,7 @@ python -m pytest
 
 ### What the tests cover
 
-Our test suite lives in `tests/test_pawpal.py` and contains **19 tests** grouped into three areas: data-model basics, core scheduling behavior, and edge cases. All tests share a `make_task()` helper (a high-priority daily "Morning walk" with overridable defaults) and a `make_planner()` helper (an owner available 07:00–20:00) so each test starts from a consistent fixture.
+My test suite lives in `tests/test_pawpal.py` and contains **19 tests** grouped into three areas: data-model basics, core scheduling behavior, and edge cases. All tests share a `make_task()` helper (a high-priority daily "Morning walk" with overridable defaults) and a `make_planner()` helper (an owner available 07:00–20:00) so each test starts from a consistent fixture.
 
 **Data-model basics** — a `Task` tracks its completion state (`completed` starts `False`, flips to `True` after `mark_complete()`), a `Pet` grows its task list on `add_task()`, and `add_task()` wires the task's `.pet` back-reference.
 
@@ -96,7 +104,8 @@ collected 19 items
 
 tests\test_pawpal.py ...................                                     [100%]
 
-=============================== 19 passed in 0.04s ================================
+=============================== 19 passed in 0.13s ================================
+PS C:\Users\chiom\.vscode\ai110-module2show-pawpal-starter> 
 
 
 My confidence level will probably be a 3, just because this is something a bit new to me but I trust the system's reliability to an extent based on my test results.
@@ -153,12 +162,123 @@ not repeat, so recurring chores reappear automatically while one-offs stay done.
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### The interface
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+PawPal+ runs as a Streamlit web app (`streamlit run app.py`, or
+`python -m streamlit run app.py` if the `streamlit` command isn't on your PATH).
+The page is a single scrolling form organized top-to-bottom around what a user can do:
+
+- **Owner** — set the owner's name and their availability window (*Available from* /
+  *Available until*, as `HH:MM`). The window bounds when tasks may be scheduled.
+- **Add a Pet** — enter a pet's name, species, and age, then click **Add pet**. A live
+  table lists every pet and how many tasks each one has.
+- **Add a Task** — pick which pet the task is for, then give it a title, category,
+  duration, priority (low/medium/high), preferred time, and frequency
+  (once/daily/weekly). Click **Add task** to attach it to that pet.
+- **Current tasks** — the task table auto-updates in *planning order* (sorted by the
+  Planner), shows a conflict banner when preferred times overlap, and offers
+  **Filter by pet** and **Filter by status** dropdowns plus at-a-glance metrics
+  (tasks shown, total time, high-priority count).
+- **Build Schedule** — click **Generate schedule** to produce a conflict-free daily
+  plan, a plain-language explanation of it, and a conflict check.
+
+### An example workflow
+
+1. In **Owner**, keep *Jordan* (or rename) and set availability to `08:00`–`20:00`.
+2. In **Add a Pet**, add `Rex` (dog, age 4) and click **Add pet**; add a second pet
+   `Luna` (cat, age 2). Both appear in the pets table.
+3. In **Add a Task**, add a high-priority daily `Morning walk` for Rex at `07:30`
+   (30 min), then a high-priority `Feed & fresh water` for Luna at `08:00` (10 min).
+4. Add two more tasks at the **same** preferred time — e.g. `Vet appointment` for Rex
+   and `Grooming` for Luna, both at `09:00`. The **Current tasks** section immediately
+   shows an amber ⚠️ conflict warning listing the overlapping pair.
+5. Scroll to **Build Schedule** and click **Generate schedule**. The app spaces the
+   clashing tasks out into a conflict-free plan, prints each task's start/end time, and
+   shows an explanation of the ordering.
+
+### Key scheduler behaviors this shows
+
+- **Priority-then-time sorting** — the task table and plan list high-priority chores
+  first, and order equal-priority tasks by preferred time.
+- **Conflict warnings** — two tasks whose time windows overlap (even across different
+  pets) trigger a warning, since one owner can't do both at once.
+- **Automatic conflict resolution** — *Generate schedule* pushes clashing tasks later
+  so the final plan never overlaps, while still respecting the availability window.
+- **Filtering** — narrow the task view by pet and/or completion status.
+- **Recurrence** — daily/weekly tasks are built to reappear on their next occurrence
+  once completed (one-off tasks don't repeat).
+
+### Sample CLI output (`python main.py`)
+
+The `main.py` script exercises the same scheduling logic in the terminal with two pets
+and a deliberate 09:00 conflict:
+
+```text
+========================================
+TASKS AS ADDED (out of order)
+========================================
+18:00 — Dinner [pet: Rex, priority: medium]
+07:30 — Morning walk [pet: Rex, priority: high]
+09:00 — Vet appointment [pet: Rex, priority: high]
+12:00 — Litter box cleaning [pet: Luna, priority: low]
+08:00 — Feed & fresh water [pet: Luna, priority: high]
+09:00 — Grooming [pet: Luna, priority: medium]
+
+========================================
+AFTER sort_tasks() (priority, then time)
+========================================
+07:30 — Morning walk [pet: Rex, priority: high]
+08:00 — Feed & fresh water [pet: Luna, priority: high]
+09:00 — Vet appointment [pet: Rex, priority: high]
+09:00 — Grooming [pet: Luna, priority: medium]
+18:00 — Dinner [pet: Rex, priority: medium]
+12:00 — Litter box cleaning [pet: Luna, priority: low]
+
+========================================
+AFTER filter_tasks(pet_name='Luna')
+========================================
+08:00 — Feed & fresh water
+09:00 — Grooming
+12:00 — Litter box cleaning
+
+========================================
+AFTER filter_tasks(completed=False)
+========================================
+07:30 — Morning walk
+08:00 — Feed & fresh water
+09:00 — Vet appointment
+09:00 — Grooming
+18:00 — Dinner
+12:00 — Litter box cleaning
+
+========================================
+SCHEDULING CONFLICTS (check_conflicts())
+========================================
+WARNING: 1 scheduling conflict(s) found:
+  - [different pets] 09:00-09:30 Vet appointment (Rex) overlaps 09:00-09:30 Grooming (Luna)
+
+========================================
+TODAY'S SCHEDULE
+========================================
+07:30 — Morning walk (30 min) [pet: Rex, priority: high]
+08:00 — Feed & fresh water (10 min) [pet: Luna, priority: high]
+09:00 — Vet appointment (30 min) [pet: Rex, priority: high]
+09:30 — Grooming (30 min) [pet: Luna, priority: medium]
+18:00 — Dinner (15 min) [pet: Rex, priority: medium]
+18:15 — Litter box cleaning (10 min) [pet: Luna, priority: low]
+========================================
+
+Daily care plan for Amarachi:
+  07:30 — Morning walk (30 min) [pet: Rex, priority: high]
+  08:00 — Feed & fresh water (10 min) [pet: Luna, priority: high]
+  09:00 — Vet appointment (30 min) [pet: Rex, priority: high]
+  09:30 — Grooming (30 min) [pet: Luna, priority: medium]
+  18:00 — Dinner (15 min) [pet: Rex, priority: medium]
+  18:15 — Litter box cleaning (10 min) [pet: Luna, priority: low]
+```
+
+Notice the two 09:00 tasks: `check_conflicts()` flags them as a clash, but
+**TODAY'S SCHEDULE** resolves it by pushing Grooming to `09:30` so the final plan
+never overlaps.
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->

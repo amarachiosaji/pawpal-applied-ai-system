@@ -125,13 +125,53 @@ task_planner.collect_tasks()
 task_planner.sort_tasks()
 
 if task_planner.tasks:
-    # A best-effort conflict check that degrades to a warning instead of
-    # crashing on bad time strings.
-    conflict_message = task_planner.check_conflicts()
-    if conflict_message.startswith("OK"):
-        st.success(conflict_message)
-    else:
-        st.warning(conflict_message)
+    # Ask the Planner for the *structured* conflicts (Conflict objects) rather
+    # than a pre-formatted string, so the UI can render an owner-friendly
+    # warning. We degrade to a caption instead of crashing on bad time strings.
+    try:
+        conflicts = task_planner.detect_conflicts()
+    except (ValueError, TypeError, AttributeError) as error:
+        conflicts = None
+        st.info(f"Couldn't check for time conflicts yet — check your task times ({error}).")
+
+    if conflicts == []:
+        st.success("✅ No time conflicts — every task has its own slot in the day.")
+    elif conflicts:
+        # Amber warning (resolvable), not a red error: the schedule can fix it.
+        st.warning(
+            f"⚠️ Heads up — {len(conflicts)} time conflict(s). "
+            "You'd need to be in two places at once."
+        )
+        # The exact clashes, laid out so the owner can see what to move.
+        st.table(
+            [
+                {
+                    "when": (
+                        f"{c.task_a.preferred_time} vs {c.task_b.preferred_time}"
+                    ),
+                    "these overlap": f"{c.task_a.title} ↔ {c.task_b.title}",
+                    "pet(s)": (
+                        c.task_a.pet.name
+                        if c.same_pet and c.task_a.pet
+                        else " & ".join(
+                            sorted(
+                                {
+                                    c.task_a.pet.name if c.task_a.pet else "?",
+                                    c.task_b.pet.name if c.task_b.pet else "?",
+                                }
+                            )
+                        )
+                    ),
+                    "scope": "same pet" if c.same_pet else "different pets",
+                }
+                for c in conflicts
+            ]
+        )
+        st.caption(
+            "💡 No need to fix these by hand — **Generate schedule** below will "
+            "automatically space the tasks out into a conflict-free plan. "
+            "Or adjust a task's preferred time above to keep your ideal timing."
+        )
 
     st.write("Current tasks (in planning order):")
 
