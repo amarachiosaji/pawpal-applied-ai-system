@@ -67,19 +67,23 @@ PS C:\Users\chiom\.vscode\ai110-module2show-pawpal-starter>
 
 python -m pytest
 
-### What our tests cover
+### What the tests cover
 
-Our test suite lives in `tests/test_pawpal.py` and contains **two tests** that verify the core behavior of the PawPal data model.
+Our test suite lives in `tests/test_pawpal.py` and contains **19 tests** grouped into three areas: data-model basics, core scheduling behavior, and edge cases. All tests share a `make_task()` helper (a high-priority daily "Morning walk" with overridable defaults) and a `make_planner()` helper (an owner available 07:00–20:00) so each test starts from a consistent fixture.
 
-**1. `test_mark_complete_changes_status`** — Verifies that a `Task` correctly tracks its completion state:
-- A newly created task starts with `completed = False`.
-- After calling `mark_complete()`, the task's `completed` flag flips to `True`.
+**Data-model basics** — a `Task` tracks its completion state (`completed` starts `False`, flips to `True` after `mark_complete()`), a `Pet` grows its task list on `add_task()`, and `add_task()` wires the task's `.pet` back-reference.
 
-**2. `test_add_task_increases_pet_task_count`** — Verifies that a `Pet` correctly manages its list of tasks:
-- A newly created pet starts with an empty task list.
-- After calling `add_task()`, the pet's task count increases by one.
+**Core scheduling behavior** — the three required behaviors are each pinned by a dedicated test:
 
-A shared `make_task()` helper builds a standard `Task` (a high-priority daily "Morning walk") so each test starts from a consistent fixture. Run the tests with `python -m pytest`, or directly via `python tests/test_pawpal.py`.
+- **Sorting correctness** (`test_sort_returns_chronological_order`) — equal-priority tasks are returned in chronological order by preferred time. A companion test confirms priority still wins over the clock (a HIGH task beats an earlier LOW one).
+- **Recurrence logic** (`test_mark_complete_spawns_next_daily_occurrence`) — marking a daily task complete creates a fresh, incomplete copy due the following day and attaches it to the same pet. Sibling tests cover the weekly (+7 days) case and confirm a one-off (`ONCE`) task does **not** recur.
+- **Conflict detection** (`test_two_tasks_at_exact_same_time_conflict`) — the Planner flags two tasks scheduled at the same time as a conflict. A companion test confirms overlaps are also caught across different pets.
+
+Plus `test_owner_all_tasks_flattens_across_pets`, verifying the Planner sees every task across every pet.
+
+**Edge cases** — a pet with no tasks (empty plan + friendly message), tasks that touch end-to-end (08:00–08:10 and 08:10–08:20 do *not* clash), a task with no preferred time (skipped in conflict checks), plan generation never producing overlaps, a task too long for the availability window (dropped), filtering by completion status and pet name (case-insensitive), a Planner with no owner (safe, no crash), and malformed time data degrading to a `WARNING` instead of raising.
+
+Run the tests with `python -m pytest`, or directly via `python tests/test_pawpal.py`.
 
 Sample test output:
 
@@ -88,11 +92,15 @@ PS C:\Users\chiom\.vscode\ai110-module2show-pawpal-starter> python -m pytest
 platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0
 rootdir: C:\Users\chiom\.vscode\ai110-module2show-pawpal-starter
 plugins: anyio-4.14.0
-collected 2 items                                                                  
+collected 19 items                                                                 
 
-tests\test_pawpal.py ..                                                      [100%]
+tests\test_pawpal.py ...................                                     [100%]
 
-================================ 2 passed in 0.08s ================================
+=============================== 19 passed in 0.04s ================================
+
+
+My confidence level will probably be a 3, just because this is something a bit new to me but I trust the system's reliability to an extent based on my test results.
+
 
 ## 📐 Smarter Scheduling
 
