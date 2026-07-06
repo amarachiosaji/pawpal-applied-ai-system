@@ -52,24 +52,24 @@ pip install -r requirements.txt
 
 ## 🖥️ Sample Output
 
-Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
+Running `python main.py` builds a plan for two pets and resolves a deliberate 09:00
+clash into a conflict-free day:
 
-PS C:\Users\chiom\.vscode\ai110-module2show-pawpal-starter> python main.py
+```text
 ========================================
 TODAY'S SCHEDULE
 ========================================
 07:30 — Morning walk (30 min) [pet: Rex, priority: high]
 08:00 — Feed & fresh water (10 min) [pet: Luna, priority: high]
+09:00 — Vet appointment (30 min) [pet: Rex, priority: high]
+09:30 — Grooming (30 min) [pet: Luna, priority: medium]
 18:00 — Dinner (15 min) [pet: Rex, priority: medium]
 18:15 — Litter box cleaning (10 min) [pet: Luna, priority: low]
 ========================================
+```
 
-Daily care plan for Amarachi:
-  07:30 — Morning walk (30 min) [pet: Rex, priority: high]
-  08:00 — Feed & fresh water (10 min) [pet: Luna, priority: high]
-  18:00 — Dinner (15 min) [pet: Rex, priority: medium]
-  18:15 — Litter box cleaning (10 min) [pet: Luna, priority: low]
-PS C:\Users\chiom\.vscode\ai110-module2show-pawpal-starter> 
+See the [Demo Walkthrough](#-demo-walkthrough) for the full run (sorting, filtering,
+and conflict detection) alongside the Streamlit UI.
 
 ## 🧪 Testing PawPal+
 
@@ -244,7 +244,7 @@ AFTER filter_tasks(pet_name='Luna')
 
 ========================================
 AFTER filter_tasks(completed=False)
-========================================
+=======================================
 07:30 — Morning walk
 08:00 — Feed & fresh water
 09:00 — Vet appointment
