@@ -65,19 +65,34 @@ PS C:\Users\chiom\.vscode\ai110-module2show-pawpal-starter>
 
 ## 🧪 Testing PawPal+
 
-```bash
-# Run the full test suite:
-pytest
+python -m pytest
 
-# Run with coverage:
-pytest --cov
-```
+### What our tests cover
+
+Our test suite lives in `tests/test_pawpal.py` and contains **two tests** that verify the core behavior of the PawPal data model.
+
+**1. `test_mark_complete_changes_status`** — Verifies that a `Task` correctly tracks its completion state:
+- A newly created task starts with `completed = False`.
+- After calling `mark_complete()`, the task's `completed` flag flips to `True`.
+
+**2. `test_add_task_increases_pet_task_count`** — Verifies that a `Pet` correctly manages its list of tasks:
+- A newly created pet starts with an empty task list.
+- After calling `add_task()`, the pet's task count increases by one.
+
+A shared `make_task()` helper builds a standard `Task` (a high-priority daily "Morning walk") so each test starts from a consistent fixture. Run the tests with `python -m pytest`, or directly via `python tests/test_pawpal.py`.
 
 Sample test output:
 
-```
-# Paste your pytest output here
-```
+PS C:\Users\chiom\.vscode\ai110-module2show-pawpal-starter> python -m pytest
+=============================== test session starts ===============================
+platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\chiom\.vscode\ai110-module2show-pawpal-starter
+plugins: anyio-4.14.0
+collected 2 items                                                                  
+
+tests\test_pawpal.py ..                                                      [100%]
+
+================================ 2 passed in 0.08s ================================
 
 ## 📐 Smarter Scheduling
 

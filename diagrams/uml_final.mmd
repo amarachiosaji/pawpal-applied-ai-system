@@ -4,6 +4,7 @@ classDiagram
         HIGH
         MEDIUM
         LOW
+        +rank() int
     }
 
     class Frequency {
@@ -22,6 +23,7 @@ classDiagram
         +addPet()
         +updatePreferences()
         +setAvailableTime()
+        +allTasks() List~Task~
         +availableMinutes() int
     }
 
@@ -46,6 +48,10 @@ classDiagram
         +String preferredTime
         +Frequency frequency
         +Pet pet
+        +bool completed
+        +date dueDate
+        +markComplete() Task
+        +createNextOccurrence() Task
         +updateDuration()
         +changePriority()
         +isHighPriority()
@@ -58,15 +64,25 @@ classDiagram
         +endMinutes() int
     }
 
+    class Conflict {
+        +Task taskA
+        +Task taskB
+        +samePet() bool
+    }
+
     class Planner {
         +Owner owner
         +List~Pet~ pets
         +List~Task~ tasks
         +collectTasks()
-        +generatePlan() List~PlanItem~
         +sortTasks()
+        +filterTasks() List~Task~
+        +detectConflicts() List~Conflict~
+        +explainConflicts() String
+        +checkConflicts() String
+        +generatePlan() List~PlanItem~
         +resolveConflicts()
-        +explainPlan()
+        +explainPlan() String
     }
 
     Owner "1" --> "1..*" Pet : owns
@@ -75,6 +91,8 @@ classDiagram
     Task --> Priority
     Task --> Frequency
     PlanItem "1" --> "1" Task : schedules
+    Conflict "1" --> "2" Task : flags
     Planner --> Owner
     Planner "1" --> "1..*" Pet
     Planner ..> PlanItem : produces
+    Planner ..> Conflict : detects

@@ -117,22 +117,64 @@ else:
         pet.add_task(task)  # Pet.add_task() handles the submitted task data.
         st.success(f"Added '{task_title}' to {pet.name}.")
 
-# Show every task currently attached to the owner's pets.
-all_tasks = owner.all_tasks()
-if all_tasks:
-    st.write("Current tasks:")
-    st.table(
-        [
-            {
-                "pet": t.pet.name if t.pet else "?",
-                "title": t.title,
-                "duration_minutes": t.duration_minutes,
-                "priority": t.priority.name.lower(),
-                "preferred_time": t.preferred_time,
-            }
-            for t in all_tasks
-        ]
-    )
+# Show every task currently attached to the owner's pets. We hand the owner
+# to a Planner so the table reflects the Planner's own ordering (priority, then
+# preferred time) and so we can surface any scheduling clashes up front.
+task_planner = Planner(owner=owner)
+task_planner.collect_tasks()
+task_planner.sort_tasks()
+
+if task_planner.tasks:
+    # A best-effort conflict check that degrades to a warning instead of
+    # crashing on bad time strings.
+    conflict_message = task_planner.check_conflicts()
+    if conflict_message.startswith("OK"):
+        st.success(conflict_message)
+    else:
+        st.warning(conflict_message)
+
+    st.write("Current tasks (in planning order):")
+
+    # --- Filter controls: let the Planner do the filtering via filter_tasks(). ---
+    filter_pet_col, filter_status_col = st.columns(2)
+    with filter_pet_col:
+        pet_filter = st.selectbox(
+            "Filter by pet", ["All pets"] + [p.name for p in owner.pets]
+        )
+    with filter_status_col:
+        status_filter = st.selectbox(
+            "Filter by status", ["All", "To do", "Completed"]
+        )
+
+    # Translate the UI choices into filter_tasks() arguments.
+    completed_arg = {"All": None, "To do": False, "Completed": True}[status_filter]
+    pet_arg = None if pet_filter == "All pets" else pet_filter
+    filtered_tasks = task_planner.filter_tasks(completed=completed_arg, pet_name=pet_arg)
+
+    # Summary metrics give the filtered view a professional, at-a-glance header.
+    total_minutes = sum(t.duration_minutes for t in filtered_tasks)
+    high_priority = sum(1 for t in filtered_tasks if t.is_high_priority())
+    metric_count, metric_time, metric_high = st.columns(3)
+    metric_count.metric("Tasks shown", len(filtered_tasks))
+    metric_time.metric("Total time", f"{total_minutes} min")
+    metric_high.metric("High priority", high_priority)
+
+    if filtered_tasks:
+        st.table(
+            [
+                {
+                    "pet": t.pet.name if t.pet else "?",
+                    "title": t.title,
+                    "duration_minutes": t.duration_minutes,
+                    "priority": t.priority.name.lower(),
+                    "preferred_time": t.preferred_time,
+                    "status": "done" if t.completed else "to do",
+                }
+                for t in filtered_tasks
+            ]
+        )
+    else:
+        st.info("No tasks match the current filters.")
 
 st.divider()
 
@@ -146,6 +188,7 @@ if st.button("Generate schedule"):
     if not plan:
         st.warning("No tasks could be scheduled. Add tasks (and check the availability window).")
     else:
+        st.success(f"Scheduled {len(plan)} task(s) into a conflict-free plan.")
         st.table(
             [
                 {
@@ -160,3 +203,9 @@ if st.button("Generate schedule"):
         )
         st.markdown("**Explanation**")
         st.text(planner.explain_plan())
+
+        # Surface any preferred-time clashes the Planner detected. The plan
+        # above is already conflict-free (tasks get pushed later), but this
+        # explains where the owner's original preferred times overlapped.
+        st.markdown("**Conflict check**")
+        st.text(planner.explain_conflicts())
