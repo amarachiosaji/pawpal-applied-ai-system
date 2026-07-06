@@ -184,7 +184,8 @@ The page is a single scrolling form organized top-to-bottom around what a user c
 
 ### An example workflow
 
-1. In **Owner**, keep *Jordan* (or rename) and set availability to `08:00`–`20:00`.
+1. In **Owner**, keep *Jordan* (or rename) and set availability to `07:00`–`20:00`
+   (widen the *Available from* field to `07:00` so the early `07:30` walk keeps its slot).
 2. In **Add a Pet**, add `Rex` (dog, age 4) and click **Add pet**; add a second pet
    `Luna` (cat, age 2). Both appear in the pets table.
 3. In **Add a Task**, add a high-priority daily `Morning walk` for Rex at `07:30`
@@ -281,4 +282,7 @@ Notice the two 09:00 tasks: `check_conflicts()` flags them as a clash, but
 **TODAY'S SCHEDULE** resolves it by pushing Grooming to `09:30` so the final plan
 never overlaps.
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+**Screenshot or video** *(optional)*: to capture one, run `streamlit run app.py`, walk
+through the [example workflow](#an-example-workflow) above, then screenshot the **Current
+tasks** conflict banner and the **Build Schedule** output. Save it under `diagrams/` and
+embed it here, e.g. `![PawPal+ demo](diagrams/demo.png)`.
