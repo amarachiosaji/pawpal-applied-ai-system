@@ -74,6 +74,9 @@ Owner.available_minutes() capacity accessor
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
 
+One tradeoff my scheduler makes is that generate_plan uses greedy, sequential packing that sacrifices a task's preferred time in order to guarantee a conflict-free plan. After sorting tasks by priority and then preferred start time, it walks the list once, tracking the earliest free minute (next_free). Each task is placed at start = max(preferred_time, next_free) — so whenever a task's preferred time has already been claimed by an earlier task, it is silently pushed to start right after the previous one ends rather than at the time the owner actually wanted. If pushing it past the end of the owner's availability window, the task is dropped from the plan entirely (continue).
+
+This is reasonable for the pet-care scenario for a few reasons. First, it's predictable and easy to explain to the owner: tasks never overlap, and higher-priority care (e.g., medication) always wins the earlier slot. Second, the algorithm is a single O(n log n) sort plus one linear pass — cheap and deterministic, with no backtracking or search. The cost is that it's not optimal: it never tries to reshuffle or compress durations to honor more preferred times, and it can drop a low-priority task at the end of a full day rather than negotiating a better arrangement. For a daily home pet-care routine — where the owner mostly wants a sane, non-conflicting order and clear priorities — "good and understandable" is worth more than "mathematically optimal," so the tradeoff is a sensible one.
 ---
 
 ## 3. AI Collaboration

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from enum import Enum
 from typing import List, Optional
 
@@ -119,10 +120,46 @@ class Task:
     frequency: Frequency = Frequency.DAILY
     pet: Optional["Pet"] = None
     completed: bool = False
+    due_date: date = field(default_factory=date.today)
 
-    def mark_complete(self) -> None:
-        """Mark this task as done."""
+    def mark_complete(self) -> Optional["Task"]:
+        """Mark this task as done and roll a recurring task forward.
+
+        For ``DAILY`` and ``WEEKLY`` tasks this creates a fresh, incomplete
+        copy for the next occurrence and attaches it to the same pet, so the
+        recurring chore reappears automatically. Returns the newly created
+        task, or ``None`` for one-off (``ONCE``) tasks.
+        """
         self.completed = True
+        return self.create_next_occurrence()
+
+    def create_next_occurrence(self) -> Optional["Task"]:
+        """Create the next instance of a recurring task, if it recurs.
+
+        Returns a new, incomplete :class:`Task` for ``DAILY``/``WEEKLY``
+        frequencies (attached to this task's pet), or ``None`` for ``ONCE``.
+        """
+        if self.frequency not in (Frequency.DAILY, Frequency.WEEKLY):
+            return None
+
+        # Advance the due date using timedelta so month/year rollovers and
+        # leap years are handled correctly: daily -> +1 day, weekly -> +7 days.
+        step = timedelta(days=1) if self.frequency is Frequency.DAILY else timedelta(days=7)
+        next_due = date.today() + step
+
+        next_task = Task(
+            title=self.title,
+            category=self.category,
+            duration_minutes=self.duration_minutes,
+            priority=self.priority,
+            preferred_time=self.preferred_time,
+            frequency=self.frequency,
+            due_date=next_due,
+        )
+        # Attach to the same pet so the recurring chore shows up next time.
+        if self.pet is not None:
+            self.pet.add_task(next_task)
+        return next_task
 
     def update_duration(self, duration_minutes: int) -> None:
         """Update the task duration."""
@@ -171,6 +208,42 @@ class PlanItem:
 
 
 @dataclass
+class Conflict:
+    """Two tasks whose preferred time windows overlap.
+
+    The tasks may belong to the same pet (the owner can't be in two
+    places for one animal at once) or to different pets (the owner
+    can't attend to both animals simultaneously). Either way it is a
+    scheduling clash the owner needs to know about.
+    """
+
+    task_a: Task
+    task_b: Task
+
+    @property
+    def same_pet(self) -> bool:
+        """Return whether both tasks are for the same pet."""
+        return (
+            self.task_a.pet is not None
+            and self.task_b.pet is not None
+            and self.task_a.pet is self.task_b.pet
+        )
+
+    def __str__(self) -> str:
+        """Return a human-readable one-line description of the clash."""
+        def describe(task: Task) -> str:
+            pet_name = task.pet.name if task.pet else "?"
+            end = parse_time(task.preferred_time) + task.duration_minutes
+            return (
+                f"{task.preferred_time}-{format_time(end)} {task.title} "
+                f"({pet_name})"
+            )
+
+        scope = "same pet" if self.same_pet else "different pets"
+        return f"[{scope}] {describe(self.task_a)} overlaps {describe(self.task_b)}"
+
+
+@dataclass
 class Planner:
     owner: Owner | None = None
     pets: List[Pet] = field(default_factory=list)
@@ -198,6 +271,93 @@ class Planner:
                 parse_time(task.preferred_time) if task.preferred_time else 0,
             )
         )
+
+    def filter_tasks(
+        self,
+        completed: Optional[bool] = None,
+        pet_name: Optional[str] = None,
+    ) -> List[Task]:
+        """Return tasks matching the given completion status and/or pet name.
+
+        Both filters are optional. Passing neither returns every task; passing
+        both keeps only tasks that satisfy *both* conditions. ``pet_name`` is
+        matched case-insensitively.
+        """
+        results = self.tasks
+        if completed is not None:
+            results = [task for task in results if task.completed == completed]
+        if pet_name is not None:
+            target = pet_name.lower()
+            results = [
+                task
+                for task in results
+                if task.pet is not None and task.pet.name.lower() == target
+            ]
+        return list(results)
+
+    def detect_conflicts(self) -> List[Conflict]:
+        """Find tasks whose preferred time windows overlap.
+
+        Each task wants to run at its ``preferred_time`` for
+        ``duration_minutes``. Two tasks clash when those intervals
+        overlap — regardless of whether they belong to the same pet or
+        different pets, since a single owner can't do both at once.
+
+        Returns every clashing pair (a task with no ``preferred_time``
+        is skipped, as it has no fixed slot to collide with).
+        """
+        self.collect_tasks()
+
+        # Only tasks with a fixed preferred time can truly clash.
+        timed = [task for task in self.tasks if task.preferred_time]
+
+        conflicts: List[Conflict] = []
+        for i, task_a in enumerate(timed):
+            start_a = parse_time(task_a.preferred_time)
+            end_a = start_a + task_a.duration_minutes
+            for task_b in timed[i + 1:]:
+                start_b = parse_time(task_b.preferred_time)
+                end_b = start_b + task_b.duration_minutes
+                # Half-open intervals overlap when each starts before the
+                # other ends; touching end-to-end (e.g. 8:00-8:10 and
+                # 8:10-8:20) is not a clash.
+                if start_a < end_b and start_b < end_a:
+                    conflicts.append(Conflict(task_a=task_a, task_b=task_b))
+        return conflicts
+
+    def explain_conflicts(self) -> str:
+        """Return a plain-language summary of any scheduling clashes."""
+        conflicts = self.detect_conflicts()
+        if not conflicts:
+            return "No scheduling conflicts detected."
+
+        lines = [f"Detected {len(conflicts)} scheduling conflict(s):"]
+        lines.extend(f"  {conflict}" for conflict in conflicts)
+        return "\n".join(lines)
+
+    def check_conflicts(self) -> str:
+        """Lightweight conflict check that *always* returns a message.
+
+        Unlike :meth:`detect_conflicts`, this never raises. It is meant for
+        quick, best-effort sanity checks (e.g. a UI banner) where a bad time
+        string or a missing duration should degrade into a warning rather
+        than crash the caller.
+
+        Returns one of:
+          * an all-clear message when no clashes are found,
+          * a summary line plus one line per detected clash,
+          * a warning message if the task data could not be parsed.
+        """
+        try:
+            conflicts = self.detect_conflicts()
+        except (ValueError, TypeError, AttributeError) as error:
+            return f"WARNING: Could not check for conflicts: {error}"
+
+        if not conflicts:
+            return "OK: No scheduling conflicts."
+
+        summary = f"WARNING: {len(conflicts)} scheduling conflict(s) found:"
+        return "\n".join([summary, *(f"  - {conflict}" for conflict in conflicts)])
 
     def generate_plan(self) -> List[PlanItem]:
         """Create a conflict-free daily care plan from the current tasks."""

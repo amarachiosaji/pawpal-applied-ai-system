@@ -81,14 +81,52 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
+PawPal+ goes beyond a flat task list with four scheduling behaviors. Each is
+implemented on the `Planner` (or `Task`) classes in `pawpal_system.py`:
 
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Planner.sort_tasks()` | Orders tasks by priority (high → low), then by preferred start time |
+| Filtering | `Planner.filter_tasks()` | Filters by completion status and/or pet name (case-insensitive) |
+| Conflict detection | `Planner.detect_conflicts()`, `Planner.explain_conflicts()`, `Planner.check_conflicts()` | Flags tasks whose time windows overlap; `Conflict` describes each clash |
+| Recurring tasks | `Task.mark_complete()`, `Task.create_next_occurrence()` | Completing a daily/weekly task auto-schedules its next occurrence |
+
+### Sorting behavior — `Planner.sort_tasks()`
+
+Tasks are sorted by a two-part key: `Priority.rank` first (high-priority chores
+come first), then the `preferred_time` converted to minutes since midnight
+(tasks without a preferred time sort as `0`). `generate_plan()` calls this so
+the resulting day is priority-ordered but still respects fixed time slots.
+
+### Filtering behavior — `Planner.filter_tasks()`
+
+Accepts two optional filters, `completed` and `pet_name`. Passing neither
+returns every task; passing both keeps only tasks that satisfy *both*
+conditions. `pet_name` is matched case-insensitively, so you can list, for
+example, all of Luna's outstanding (incomplete) tasks.
+
+### Conflict detection — `Planner.detect_conflicts()`
+
+Each task occupies a half-open interval `[preferred_time, preferred_time +
+duration_minutes)`. Two tasks conflict when their intervals overlap
+(`start_a < end_b and start_b < end_a`) — touching end-to-end (e.g. `08:00–08:10`
+and `08:10–08:20`) is *not* a clash. Conflicts are reported regardless of
+whether the tasks belong to the same pet or different pets, since one owner
+can't do both at once. Tasks without a `preferred_time` are skipped.
+
+- `explain_conflicts()` returns a plain-language summary of the clashes.
+- `check_conflicts()` is a best-effort variant that never raises — it degrades
+  bad time data into a warning message rather than crashing the caller (useful
+  for a UI banner). Each clash is represented by the `Conflict` dataclass, whose
+  `same_pet` property and `__str__` produce a readable one-line description.
+
+### Recurring task logic — `Task.mark_complete()` / `Task.create_next_occurrence()`
+
+Marking a task complete calls `create_next_occurrence()`, which — for `DAILY`
+and `WEEKLY` frequencies — creates a fresh, incomplete copy with its `due_date`
+advanced (`+1 day` or `+7 days`, using `timedelta` so month/leap-year rollovers
+are handled) and attaches it to the same pet. `ONCE` tasks return `None` and do
+not repeat, so recurring chores reappear automatically while one-offs stay done.
 
 ## 📸 Demo Walkthrough
 
