@@ -1,0 +1,51 @@
+flowchart TD
+    subgraph Input["User Input"]
+        A1[Owner sets availability]
+        A2[Add Pet: name, species, age]
+        A3[Add Task: title, category,<br/>duration, priority, time, frequency]
+    end
+
+    subgraph Core["Core Scheduling System (Planner)"]
+        B1[collect_tasks<br/>flatten all pets' tasks via Owner]
+        B2[sort_tasks<br/>priority, then preferred time]
+        B3[detect_conflicts / check_conflicts<br/>overlapping time windows]
+        B4[generate_plan<br/>conflict-free schedule]
+    end
+
+    subgraph RAG["RAG Layer - NEW"]
+        C1[RAGRetriever.retrieve<br/>query = title + category + species]
+        C2[(Knowledge Base<br/>knowledge slash star dot md<br/>TF-IDF vector space)]
+        C3{Similarity score gte 0.10}
+        C4[Return top-matching<br/>care tip + source + score]
+        C5[Guardrail fallback:<br/>No specific guidance found]
+    end
+
+    subgraph Output["Output"]
+        D1[CLI: main.py<br/>printed schedule + tips]
+        D2[Streamlit UI: app.py<br/>tables + expandable tip cards]
+    end
+
+    A1 --> B1
+    A2 --> B1
+    A3 --> B1
+    B1 --> B2 --> B3
+    B2 --> B4
+    B4 --> C1
+    C1 --> C2
+    C2 --> C3
+    C3 -->|Yes| C4
+    C3 -->|No| C5
+    C4 --> D1
+    C4 --> D2
+    C5 --> D1
+    C5 --> D2
+    B4 --> D1
+    B4 --> D2
+
+    subgraph Eval["Reliability / Evaluation"]
+        E1[tests/test_pawpal.py<br/>19 tests: scheduling logic]
+        E2[tests/test_rag.py<br/>9 tests: retrieval accuracy + guardrail threshold]
+    end
+
+    E1 -.validates.-> Core
+    E2 -.validates.-> RAG
