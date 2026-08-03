@@ -1,7 +1,7 @@
 """Testing ground: verify the PawPal scheduling logic end-to-end in the terminal."""
 
 from pawpal_system import Owner, Pet, Task, Planner, Priority, Frequency
-
+from rag_retriever import RAGRetriever
 
 def main() -> None:
     # --- Create an owner and set their availability window ---
@@ -137,6 +137,14 @@ def main() -> None:
     # Plain-language explanation from the planner as a bonus sanity check.
     print()
     print(planner.explain_plan())
+
+    # --- Demonstrate generate_plan_with_context(): plan enriched with RAG tips ---
+    retriever = RAGRetriever(knowledge_dir="knowledge")
+    print()
+    print("=" * 40)
+    print("PLAN WITH CONTEXTUAL GUIDANCE (RAG)")
+    print("=" * 40)
+    print(planner.generate_plan_with_context(retriever))
 
 
 if __name__ == "__main__":

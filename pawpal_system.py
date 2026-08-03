@@ -407,3 +407,39 @@ class Planner:
         lines = [f"Daily care plan for {owner_name}:"]
         lines.extend(f"  {item}" for item in plan)
         return "\n".join(lines)
+    def generate_plan_with_context(self, retriever) -> str:
+        """Like explain_plan(), but enriches each scheduled task with a
+        relevant pet-care tip retrieved from the knowledge base.
+
+        Args:
+            retriever: An instance of RAGRetriever (see rag_retriever.py).
+
+        Returns:
+            The daily plan, formatted like explain_plan(), with a care tip
+            appended under each task. Tasks with no confident match show a
+            fallback message instead of a forced/low-quality tip.
+        """
+        plan = self.generate_plan()
+        if not plan:
+            return "No tasks could be scheduled."
+
+        owner_name = self.owner.name if self.owner else "the owner"
+        lines = [f"Daily care plan with contextual guidance for {owner_name}:"]
+
+        for item in plan:
+            task = item.task
+            lines.append(f"  {item}")
+
+            species = task.pet.species if task.pet else ""
+            query = f"{task.title} {task.category} {species}".strip()
+
+            results = retriever.retrieve(query, top_k=1)
+            if results:
+                tip = results[0]["text"]
+                source = results[0]["source"]
+                lines.append(f"      💡 Tip ({source}): {tip[:150]}...")
+            else:
+                lines.append("      💡 No specific guidance found for this task.")
+
+        return "\n".join(lines)
+        

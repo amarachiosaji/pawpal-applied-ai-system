@@ -11,11 +11,10 @@ natural hunting pattern better than one or two large meals. However, free-
 feeding can contribute to obesity in indoor cats with low activity levels, so
 portion control matters more than frequency for weight management.
 
-Senior pets (dogs 7+, cats 11+) often benefit from smaller, more frequent
-meals as digestion slows with age, and may need diet adjustments for kidney or
-joint health. Always ensure fresh water is available at all times regardless
-of feeding schedule — dehydration risk is separate from and just as important
-as feeding frequency.
+Always ensure fresh water is available at all times regardless of feeding
+schedule — dehydration risk is separate from and just as important as
+feeding frequency. Water bowls should be cleaned daily, as bacterial buildup
+can discourage pets from drinking enough.
 
 Avoid feeding immediately before or after vigorous exercise; waiting at least
 30–60 minutes on either side reduces the risk of bloat, which is a serious and
