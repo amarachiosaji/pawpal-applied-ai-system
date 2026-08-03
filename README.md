@@ -1,4 +1,4 @@
-# PawPal+ — Applied AI System (Project 4)
+# PawPal+ - Applied AI System (Project 4)
 
 ## Base Project
 
@@ -79,23 +79,29 @@ PLAN WITH CONTEXTUAL GUIDANCE (RAG)
 
 Daily care plan with contextual guidance for Amarachi:
 07:30 — Morning walk (30 min) [pet: Rex, priority: high]
+
 💡 Tip (dog_walking.md): Morning and evening walks are generally preferable to midday walks in hot
 climates, both to avoid pavement burns on paw pads and heat exhaustion....
 08:00 — Feed & fresh water (10 min) [pet: Luna, priority: high]
+
 💡 Tip (feeding_schedules.md): Always ensure fresh water is available at all times regardless of feeding
 schedule — dehydration risk is separate from and just as important as
 feedin...
 09:00 — Vet appointment (30 min) [pet: Rex, priority: high]
+
 💡 Tip (vet_visits.md): Adult dogs and cats generally benefit from an annual wellness exam, even when
 they appear healthy, since many conditions (dental disease, early kidney...
 09:30 — Grooming (30 min) [pet: Luna, priority: medium]
+
 💡 Tip (cat_grooming.md): Senior cats and overweight cats often lose flexibility and struggle to groom
 hard-to-reach spots like the lower back and hindquarters, making them pro...
 18:00 — Dinner (15 min) [pet: Rex, priority: medium]
+
 💡 Tip (feeding_schedules.md): Always ensure fresh water is available at all times regardless of feeding
 schedule — dehydration risk is separate from and just as important as
 feedin...
 18:15 — Litter box cleaning (10 min) [pet: Luna, priority: low]
+
 💡 Tip (pet_hygiene.md): Litter boxes should be scooped at least once daily, and ideally twice for
 multi-cat households, since cats are prone to avoiding a dirty box entirely...
 
@@ -155,4 +161,3 @@ No relevant guidance found.
   retrieved the correct knowledge source.** See `model_card.md` for what this
   process revealed about the retriever's real limitations.
 
-  
