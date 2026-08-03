@@ -2,7 +2,16 @@ import streamlit as st
 
 from pawpal_system import Owner, Pet, Task, Planner, Priority, Frequency, format_time
 
+from rag_retriever import RAGRetriever
+
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
+
+@st.cache_resource
+def load_retriever():
+    """Load the RAG retriever once per session, not on every re-run."""
+    return RAGRetriever(knowledge_dir="knowledge")
+
+retriever = load_retriever()
 
 st.title("🐾 PawPal+")
 
@@ -249,3 +258,26 @@ if st.button("Generate schedule"):
         # explains where the owner's original preferred times overlapped.
         st.markdown("**Conflict check**")
         st.text(planner.explain_conflicts())
+
+        # --- RAG-powered care tips: retrieve relevant guidance per task. ---
+        st.markdown("**Care Tips (AI-retrieved guidance)**")
+        st.caption(
+            "Each tip is retrieved from a pet-care knowledge base using TF-IDF "
+            "similarity. Tasks with no confident match show a fallback message "
+            "instead of a forced or low-quality tip."
+        )
+        for item in plan:
+            task = item.task
+            species = task.pet.species if task.pet else ""
+            query = f"{task.title} {task.category} {species}".strip()
+            results = retriever.retrieve(query, top_k=1)
+
+            with st.expander(f"{task.title} ({task.pet.name if task.pet else '?'})"):
+                if results:
+                    tip = results[0]["text"]
+                    source = results[0]["source"]
+                    score = results[0]["score"]
+                    st.write(tip)
+                    st.caption(f"Source: {source} · confidence: {score:.2f}")
+                else:
+                    st.info("No specific guidance found for this task.")
