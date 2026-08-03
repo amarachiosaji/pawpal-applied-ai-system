@@ -66,7 +66,7 @@ class RAGRetriever:
 
         return chunks
 
-    def retrieve(self, query: str, top_k: int = 2, min_score: float = 0.15) -> list[dict]:        
+    def retrieve(self, query: str, top_k: int = 2, min_score: float = 0.10) -> list[dict]:        
         """
         Returns the top_k most relevant chunks for the query, provided their
         similarity score clears min_score. If nothing clears the threshold,
